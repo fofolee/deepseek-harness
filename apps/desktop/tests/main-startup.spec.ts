@@ -1320,6 +1320,21 @@ describe('desktop main startup', () => {
     expect(window.show).toHaveBeenCalledOnce()
   })
 
+  it('creates the Linux tray icon with tray.png and restores the window on tray click', async () => {
+    vi.stubGlobal('process', { ...process, platform: 'linux', arch: 'x64', resourcesPath: 'desktop-test-resources' })
+    const host = await readyWorkspace()
+    const window = harness.windows[0]!
+    expect(harness.trays).toHaveLength(1)
+    expect(harness.trays[0]!.image).toEqual({ path: join('desktop-test-resources', 'tray.png') })
+    window.show.mockClear()
+    window.close()
+    expect(window.hide).toHaveBeenCalledOnce()
+    expect(host.stop).not.toHaveBeenCalled()
+    harness.trays[0]!.emit('click')
+    expect(window.show).toHaveBeenCalledOnce()
+    expect(window.focus).toHaveBeenCalled()
+  })
+
   it('skips the confirmation during a macOS shutdown but asks again once a cancelled shutdown returns focus', async () => {
     vi.stubGlobal('process', { ...process, platform: 'darwin', arch: 'arm64', resourcesPath: 'desktop-test-resources' })
     const host = await readyWorkspace()

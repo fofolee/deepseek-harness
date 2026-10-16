@@ -1,0 +1,36 @@
+FROM debian:buster
+
+# 替换为 archive 源以支持 Debian Buster (Debian 10, glibc 2.28)
+RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list && \
+    sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list && \
+    sed -i '/buster-updates/d' /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+
+# 安装底层系统依赖 (含编译工具及 electron-builder/fpm 需要的环境)
+RUN apt-get update && apt-get install -y \
+    curl make git build-essential gcc g++ wget \
+    dpkg fakeroot rpm zip python3 ruby ruby-dev pkg-config libsecret-1-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 针对 Ruby 2.5 锁定特定旧版 Gem，避免新版包引入 2.6/3.0+ 语法导致构建报错
+RUN gem install --no-document dotenv -v 2.7.6 && \
+    gem install --no-document rchardet -v 1.8.0 && \
+    gem install --no-document public_suffix -v 4.0.7 && \
+    gem install --no-document fpm -v 1.13.1
+
+# 必须声明使用系统安装的原生 fpm 以避免 arm64 环境下的架构报错
+ENV USE_SYSTEM_FPM=true
+
+# 下载安装 Node.js 22 (兼容 glibc 2.28)
+ARG TARGETARCH=amd64
+RUN if [ "$TARGETARCH" = "arm64" ]; then NODEARCH=arm64; else NODEARCH=x64; fi && \
+    NODE_VERSION=v22.20.0 && \
+    wget -q https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-${NODEARCH}.tar.xz && \
+    tar -C /usr/local --strip-components=1 -xf node-${NODE_VERSION}-linux-${NODEARCH}.tar.xz && \
+    rm node-${NODE_VERSION}-linux-${NODEARCH}.tar.xz && \
+    npm install -g pnpm@11.28.5
+
+WORKDIR /workspace
+
+# 容器启动时自动编译打包命令
+CMD ["/bin/bash", "-c", "git config --global --add safe.directory /workspace && pnpm install && pnpm run build:artifacts && pnpm run package:desktop:deb"]

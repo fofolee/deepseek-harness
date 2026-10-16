@@ -988,8 +988,10 @@ async function main(): Promise<void> {
     tray?.relabel()
   }
   refreshApplicationMenu()
-  const trayIconPath = development ? join(app.getAppPath(), 'resources', 'tray-windows.ico') : join(process.resourcesPath, 'tray.ico')
-  if (process.platform === 'win32') {
+  const trayIconFilename = process.platform === 'win32' ? 'tray.ico' : 'tray.png'
+  const trayIconDevFilename = process.platform === 'win32' ? 'tray-windows.ico' : 'tray-linux.png'
+  const trayIconPath = development ? join(app.getAppPath(), 'resources', trayIconDevFilename) : join(process.resourcesPath, trayIconFilename)
+  if (process.platform === 'win32' || process.platform === 'linux') {
     // The tray is the way back to a hidden window; without it, relaunching the application still focuses it.
     try {
       tray = new DesktopTray({ iconPath: trayIconPath, locale: currentDesktopLocale,
@@ -1010,7 +1012,7 @@ async function main(): Promise<void> {
     focus: () => { if (process.platform === 'darwin') app.focus({ steal: true }) },
     // The task dialog draws its main icon at the system icon size; the multi-size ICO yields that
     // size directly, where the 1024 px PNG would be scaled down by GDI.
-    ...(process.platform === 'win32' ? { icon: nativeImage.createFromPath(trayIconPath) } : {}),
+    ...(process.platform === 'win32' || process.platform === 'linux' ? { icon: nativeImage.createFromPath(trayIconPath) } : {}),
   })
 
   if (process.platform === 'win32') {

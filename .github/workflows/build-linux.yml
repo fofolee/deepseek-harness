@@ -1,0 +1,102 @@
+name: Build Linux Packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'dsh-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build glibc-${{ matrix.glibc }} ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - glibc: '2.28'
+            image: 'debian:buster'
+            arch: 'amd64'
+            platform: 'linux/amd64'
+            node_arch: 'x64'
+          - glibc: '2.28'
+            image: 'debian:buster'
+            arch: 'arm64'
+            platform: 'linux/arm64'
+            node_arch: 'arm64'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        if: matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build in Docker
+        run: |
+          docker run --rm -i --platform ${{ matrix.platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e CGO_ENABLED=1 \
+            -e DEBIAN_FRONTEND=noninteractive \
+            -e USE_SYSTEM_FPM=true \
+            ${{ matrix.image }} \
+            /bin/bash << 'EOF'
+              set -e
+
+              # 优化 Debian Buster 归档源处理，确保 apt-get update 稳定
+              if grep -q 'buster' /etc/os-release 2>/dev/null; then
+                sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list
+                sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list
+                sed -i '/buster-updates/d' /etc/apt/sources.list
+                echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until
+              fi
+
+              apt-get update
+              apt-get install -y curl make git build-essential gcc g++ wget \
+                dpkg fakeroot rpm zip python3 ruby ruby-dev pkg-config libsecret-1-dev
+
+              # 在 arm64 模拟环境下，打包程序内置的 x64 架构 fpm 会报 Exec format error
+              # 安装系统原生架构的 fpm 并配合环境变量 USE_SYSTEM_FPM=true 使用
+              # 针对 Debian Buster 自带 Ruby 2.5 锁定版本，避免语法报错
+              gem install --no-document dotenv -v 2.7.6
+              gem install --no-document rchardet -v 1.8.0
+              gem install --no-document public_suffix -v 4.0.7
+              gem install --no-document fpm -v 1.13.1
+
+              git config --global --add safe.directory /workspace
+
+              UNAME_M=$(uname -m)
+              if [ "$UNAME_M" = "x86_64" ]; then
+                NODE_ARCH="x64"
+              elif [ "$UNAME_M" = "aarch64" ]; then
+                NODE_ARCH="arm64"
+              else
+                echo "Unsupported architecture: $UNAME_M"
+                exit 1
+              fi
+
+              NODE_VERSION=v22.20.0
+              wget -q https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz
+              tar -C /usr/local --strip-components=1 -xf node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz
+              rm node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz
+
+              npm install -g pnpm@11.28.5
+
+              pnpm install --frozen-lockfile
+              pnpm run build:artifacts
+              pnpm run package:desktop:linux:${NODE_ARCH}:unsigned
+
+              mkdir -p /workspace/artifacts
+              cp apps/desktop/.desktop-build/targets/linux-*/unsigned-artifacts/*.deb /workspace/artifacts/ 2>/dev/null || \
+              cp apps/desktop/.desktop-build/targets/linux-*/artifacts/*.deb /workspace/artifacts/ 2>/dev/null || \
+              find . -name "*.deb" -exec cp {} /workspace/artifacts/ \;
+          EOF
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-harness-linux-${{ matrix.arch }}-glibc${{ matrix.glibc }}
+          path: artifacts/*

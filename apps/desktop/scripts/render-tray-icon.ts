@@ -20,6 +20,7 @@ export const TRAY_ICON_SIZES = [16, 20, 24, 32, 40, 48, 64] as const
 export const TRAY_ICON_PATHS = {
   source: fileURLToPath(new URL('../resources/icon-windows.svg', import.meta.url)),
   output: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)),
+  linuxOutput: fileURLToPath(new URL('../resources/tray-linux.png', import.meta.url)),
 } as const
 
 /** Coordinate space of the vector source; sharp's SVG density is scaled against it. */
@@ -117,6 +118,10 @@ function pngDimensions(png: Buffer): { width: number; height: number } {
 async function main(): Promise<void> {
   const entries = await renderTrayIconEntries(await readFile(TRAY_ICON_PATHS.source))
   await writeFile(TRAY_ICON_PATHS.output, packIco(entries))
+  const entry64 = entries.find(entry => entry.size === 64)
+  if (entry64 !== undefined) {
+    await writeFile(TRAY_ICON_PATHS.linuxOutput, entry64.png)
+  }
   console.info(`tray icon: wrote ${TRAY_ICON_PATHS.output} with ${entries.map(entry => String(entry.size)).join(', ')} px bitmaps`)
 }
 

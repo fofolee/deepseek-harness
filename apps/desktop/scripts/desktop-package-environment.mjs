@@ -34,15 +34,29 @@ export function localMacOSPackageEnvironment(environment = process.env) {
 }
 
 /**
+ * Select local Linux test defaults without reading dotenv files or inheriting release settings.
+ * @param {NodeJS.ProcessEnv} environment Parent environment, retained for build tools and networking.
+ * @returns {NodeJS.ProcessEnv} Unsigned build environment with the standard application identifier and no update policy.
+ */
+export function localLinuxPackageEnvironment(environment = process.env) {
+  return {
+    ...Object.fromEntries(Object.entries(environment).filter(([name]) => !AMBIENT_RELEASE_SETTING.test(name))),
+    DSH_DESKTOP_APP_ID: 'com.deepseek.harness',
+    DSH_DESKTOP_UNSIGNED: '1',
+  }
+}
+
+/**
  * Read a machine preset when selected, otherwise the target's required dotenv; no ambient release fallback.
  * PACKAGE_TEST_RELEASE_ID overrides the test preset only; blank retains its configured ID.
- * @param {'win32' | 'darwin'} platform Target platform.
+ * @param {'win32' | 'darwin' | 'linux'} platform Target platform.
  * @param {NodeJS.ProcessEnv} environment Parent environment, retained only for unrelated build tools.
  * @param {string} appRoot Desktop application directory; relative credential paths resolve here.
  * @param {{ unsigned?: boolean, prepareOnly?: boolean }} options Unsigned presets and Windows preparation-only presets never read signing credentials.
  * @returns {NodeJS.ProcessEnv} Isolated environment with file-owned release settings.
  */
 export function loadDesktopPackageEnvironment(platform, environment = process.env, appRoot = APP_ROOT, options = {}) {
+  if (platform === 'linux') return localLinuxPackageEnvironment(environment)
   const preset = environment.DSH_PACKAGING_PRESET
   let path = join(appRoot, platform === 'win32' ? '.env.windows' : '.env.macos')
   if (preset !== undefined) {
@@ -136,6 +150,7 @@ function requireReadableFile(environment, name) {
 export function validateDesktopPackageEnvironment(environment, target, options = {}) {
   resolveDesktopAppId(environment)
   resolveNpmRegistry(environment)
+  if (target.platform === 'linux') return
   if (target.platform !== 'darwin' || !options.unsigned) resolveDesktopPolicyEnvironment(environment)
   if (target.platform === 'darwin') resolveMacOSPackageSettings(environment)
   else resolveWindowsPackageSettings(environment)

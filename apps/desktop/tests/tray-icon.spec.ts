@@ -40,4 +40,11 @@ describe('tray icon packaging', () => {
     expect(entries.map(entry => entry.size)).toEqual([...TRAY_ICON_SIZES])
     for (const entry of entries) expect(entry.png.length).toBeGreaterThan(100)
   })
+
+  it('ships a 64 px Linux tray icon in the committed resources', () => {
+    const png = readFileSync(TRAY_ICON_PATHS.linuxOutput)
+    expect(png.length).toBeGreaterThan(100)
+    expect(png.readUInt32BE(16)).toBe(64)
+    expect(png.readUInt32BE(20)).toBe(64)
+  })
 })

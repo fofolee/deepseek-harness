@@ -153,8 +153,9 @@ export function createElectronBuilderConfig(
     extraResources: [
       { from: buildPaths.runtime, to: 'runtime' },
       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
-      // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
+      // Windows and Linux tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
       ...(packagesWindows ? [{ from: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)), to: 'tray.ico' }] : []),
+      ...(resolvedPlatform === 'linux' ? [{ from: fileURLToPath(new URL('../resources/tray-linux.png', import.meta.url)), to: 'tray.png' }] : []),
     ],
     mac: {
       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
@@ -247,7 +248,27 @@ export function createElectronBuilderConfig(
     },
     linux: {
       category: 'Development',
-      target: ['AppImage'],
+      target: ['deb'],
+      icon: fileURLToPath(new URL('../resources/icon.png', import.meta.url)),
+      desktop: {
+        entry: {
+          Name: 'DeepSeek Harness',
+          Comment: 'DeepSeek Harness desktop client',
+        },
+      },
+    },
+    deb: {
+      depends: [
+        'libgtk-3-0',
+        'libnotify4',
+        'libnss3',
+        'libxss1',
+        'libxtst6',
+        'xdg-utils',
+        'libatspi2.0-0',
+        'libuuid1',
+        'libsecret-1-0',
+      ],
     },
     nsis: {
       installerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),

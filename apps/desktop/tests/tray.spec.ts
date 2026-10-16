@@ -48,15 +48,25 @@ it('shows the application icon with its name as the tooltip and an Open / Quit m
   expect(f.native.setContextMenu).toHaveBeenCalledWith({ template: native.menus[0] })
 })
 
-it('opens the window on a single click and routes menu entries to the open and quit actions', () => {
+it('opens the window on a single click or double-click and routes menu entries to the open and quit actions', () => {
   const f = setup()
   f.native.emit('click')
   expect(f.open).toHaveBeenCalledOnce()
+  f.native.emit('double-click')
+  expect(f.open).toHaveBeenCalledTimes(2)
   const menu = native.menus[0]!
   ;(menu[0] as { click: () => void }).click()
   ;(menu[2] as { click: () => void }).click()
-  expect(f.open).toHaveBeenCalledTimes(2)
+  expect(f.open).toHaveBeenCalledTimes(3)
   expect(f.quit).toHaveBeenCalledOnce()
+})
+
+it('loads png icon on Linux', () => {
+  const current = resolveDesktopLocale('en')
+  const open = vi.fn()
+  const quit = vi.fn()
+  new DesktopTray({ iconPath: '/opt/resources/tray.png', locale: () => current, open, quit })
+  expect(native.createFromPath).toHaveBeenCalledWith('/opt/resources/tray.png')
 })
 
 it('relabels the menu in the current locale and ignores relabel after disposal', () => {
