@@ -12,6 +12,10 @@ services:
     volumes:
       - ..:/workspace
       - /workspace/node_modules
+    environment:
+      - CI=true
+      - GITHUB_ACTIONS=true
+      - USE_SYSTEM_FPM=true
 
   build-linux-arm64:
     build:
@@ -24,3 +28,7 @@ services:
     volumes:
       - ..:/workspace
       - /workspace/node_modules
+    environment:
+      - CI=true
+      - GITHUB_ACTIONS=true
+      - USE_SYSTEM_FPM=true

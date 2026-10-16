@@ -18,8 +18,10 @@ RUN gem install --no-document dotenv -v 2.7.6 && \
     gem install --no-document public_suffix -v 4.0.7 && \
     gem install --no-document fpm -v 1.13.1
 
-# 必须声明使用系统安装的原生 fpm 以避免 arm64 环境下的架构报错
-ENV USE_SYSTEM_FPM=true
+# 必须声明使用系统安装的原生 fpm 以避免 arm64 环境下的架构报错，并声明 CI 环境跳过本地 hook 安装
+ENV USE_SYSTEM_FPM=true \
+    CI=true \
+    GITHUB_ACTIONS=true
 
 # 下载安装 Node.js 22 (兼容 glibc 2.28)
 ARG TARGETARCH=amd64

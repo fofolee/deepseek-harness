@@ -39,12 +39,18 @@ jobs:
           docker run --rm -i --platform ${{ matrix.platform }} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e CI=true \
+            -e GITHUB_ACTIONS=true \
             -e CGO_ENABLED=1 \
             -e DEBIAN_FRONTEND=noninteractive \
             -e USE_SYSTEM_FPM=true \
             ${{ matrix.image }} \
             /bin/bash << 'EOF'
               set -e
+
+              export CI=true
+              export GITHUB_ACTIONS=true
+              export USE_SYSTEM_FPM=true
 
               # 优化 Debian Buster 归档源处理，确保 apt-get update 稳定
               if grep -q 'buster' /etc/os-release 2>/dev/null; then
