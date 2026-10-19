@@ -62,7 +62,11 @@ jobs:
 
               apt-get update
               apt-get install -y curl make git build-essential gcc g++ wget \
-                dpkg fakeroot rpm zip python3 ruby ruby-dev pkg-config libsecret-1-dev
+                dpkg fakeroot rpm zip python3 ruby ruby-dev pkg-config libsecret-1-dev \
+                libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 \
+                libuuid1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 \
+                libgbm1 libxkbcommon0 libx11-xcb1 libdrm2 libxcomposite1 libxdamage1 \
+                libxfixes3 libxrandr2
 
               # 在 arm64 模拟环境下，打包程序内置的 x64 架构 fpm 会报 Exec format error
               # 安装系统原生架构的 fpm 并配合环境变量 USE_SYSTEM_FPM=true 使用

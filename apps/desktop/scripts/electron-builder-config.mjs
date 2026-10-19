@@ -65,7 +65,8 @@ export function createElectronBuilderConfig(
   if (skipNotarization && (unsigned || resolvedPlatform !== 'darwin')) throw new Error('Skipping notarization requires a signed macOS build')
   const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
   const packagesWindows = resolvedPlatform === 'win32'
-  const policy = packagesMacOS && unsigned ? undefined : resolveDesktopPolicyEnvironment(env)
+  const packagesLinux = resolvedPlatform === 'linux'
+  const policy = (packagesMacOS && unsigned) || packagesLinux ? undefined : resolveDesktopPolicyEnvironment(env)
   if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
   const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
   if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)
@@ -249,6 +250,8 @@ export function createElectronBuilderConfig(
     linux: {
       category: 'Development',
       target: ['deb'],
+      executableName: 'deepseek-harness',
+      maintainer: 'DeepSeek <support@deepseek.com>',
       icon: fileURLToPath(new URL('../resources/icon.png', import.meta.url)),
       desktop: {
         entry: {

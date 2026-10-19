@@ -10,6 +10,10 @@ RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list && \
 RUN apt-get update && apt-get install -y \
     curl make git build-essential gcc g++ wget \
     dpkg fakeroot rpm zip python3 ruby ruby-dev pkg-config libsecret-1-dev \
+    libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 \
+    libuuid1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 \
+    libgbm1 libxkbcommon0 libx11-xcb1 libdrm2 libxcomposite1 libxdamage1 \
+    libxfixes3 libxrandr2 \
     && rm -rf /var/lib/apt/lists/*
 
 # 针对 Ruby 2.5 锁定特定旧版 Gem，避免新版包引入 2.6/3.0+ 语法导致构建报错
